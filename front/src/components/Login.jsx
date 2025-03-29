@@ -10,10 +10,10 @@ const Login = ({ onLogin }) => {
   const handleLogin = async () => {
     try {
         console.log({ username, password });
-      const response = await axios.post(`${API_URL}/api/login`, {
-        username,
-        password,
-      });
+      let formData = new FormData();
+      formData.append('username', username);
+      formData.append('password', password);
+      const response = await axios.post(`${API_URL}/api/login`, formData);
       if (response.data.message === "Inicio de sesión exitoso") {
         localStorage.setItem('isLoggedIn', 'true');
         onLogin();
