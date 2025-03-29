@@ -3,7 +3,8 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi import FastAPI
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
-
+from fastapi.security import OAuth2PasswordRequestForm
+from typing import Annotated
 from passlib.context import CryptContext
 from sqlmodel import Session, select
 from models.models import Usuario, UsuarioCreate
@@ -30,6 +31,7 @@ app.add_middleware(
 async def create_user(usuario: UsuarioCreate, session: Session = Depends(get_session)):
     # Hashear la contraseña antes de guardarla
     hashed_password = get_password_hash(usuario.password)
+    print(hashed_password)
     new_user = Usuario(
         cedula=usuario.cedula,
         nombre=usuario.nombre,
@@ -41,13 +43,16 @@ async def create_user(usuario: UsuarioCreate, session: Session = Depends(get_ses
 
 # Ruta para iniciar sesión
 @app.post("/api/login")
-async def login(username: str, password: str, session: Session = Depends(get_session)):
-    user = session.exec(select(Usuario).where(Usuario.nombre == username)).first()
+async def login(
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    session: Session = Depends(get_session)
+):
+    user = session.exec(select(Usuario).where(Usuario.nombre == form_data.username)).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
     # Verificar la contraseña
-    if not verify_password(password, user.password_hash):
+    if not verify_password(form_data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Contraseña incorrecta")
     
-    return {"message": "Inicio de sesión exitoso", "username": username}
+    return {"message": "Inicio de sesión exitoso", "username": user.nombre}
